@@ -3,7 +3,8 @@ from dotenv import load_dotenv;
 import datetime;
 import subprocess
 import os;
-import ffmpeg
+from agent import handle_image_response
+# import ffmpeg
 
 # load env file
 load_dotenv()
@@ -39,7 +40,7 @@ def show_macos_popup(message_text):
         return False
         
 # screenshot for the active screen        
-def take_screenshot_and_send(message):
+def take_screenshot_and_send(message)-> bool:
         
     # create a temporary image path
     timestamp = datetime.datetime.now().strftime("%d-%m-%Y")
@@ -113,6 +114,38 @@ def take_screenrecording_and_send(chat_id, duration) -> bool:
         os.remove(final_path)
         
     return True
+
+def take_screenshot_cheat_and_send(chat_id, instructions)-> bool:
+    timestamp = datetime.datetime.now().strftime("%d-%m-%Y")
+    path = f"/tmp/screenshot_{timestamp}.png"    
+    print(f"Taking screenshot to {path}...")
+    
+    try:
+        # run subprocess
+        subprocess.run(["screencapture", "-x", "-D", "1", path], check=True)        
+        # send picture to agent handler
+        print("sending photo to the agent...")
+        response = handle_image_response(path)
+        
+        # check for response
+        print("response recieved and sending to chat")
+        if(response):
+            bot.send_message(chat_id, response)
+            return True
+
+        return False
+                    
+       
+    except Exception as e:
+        print(f"Error during response: {e}")
+        bot.reply_to(chat_id, f"Error: {e}")
+        return False
+            
+    finally:  # delete file once sent
+        if(os.path.exists(path)):    
+            os.remove(path)
+            
+    
         
     
        
@@ -143,7 +176,8 @@ def handle_screenrecording(message):
         duration = int(args[1])
         if not (5 <= duration <= 300):
             bot.reply_to(message, "duration has to be between 5 and 300 seconds (5 min).")
-            
+            return
+                    
         if not (take_screenrecording_and_send(message.chat.id, duration)):
             bot.reply_to(message, "recording failed")
             
@@ -151,7 +185,35 @@ def handle_screenrecording(message):
     except ValueError:
         bot.reply_to(message, "duration has to be a number between 5 and 300")
     except Exception:
-        bot.reply_to(message, "error during recording please refre to console")
+        bot.reply_to(message, "error during recording please refer to console")
+        
+@bot.message_handler(commands=['cheatscreen', 'cs'])
+def screenshot_cheat_handler(message):
+    print("screenshot cheat activated.")
+    if(message.chat.id != authorisation_id):
+        bot.reply_to(message.chat.id, "you are not authorised by the admin")
+        return
+    
+    args = message.text.split(",")
+    if(len(args) < 2):        
+        bot.reply_to(message, f"Usage: /{message} , <command to execute>\n Example: /cs , give me answer for these two questions.")
+        
+    try:
+        instructions = args[1]
+        
+        if not take_screenshot_cheat_and_send(message.chat.id, instructions):
+            bot.reply_to(message, "error sending to the handler please refer to the console.")
+            
+    except Exception as err:
+        print("an error occured while executing this command", err)
+            
+               
+    
+    
+        
+
+    
+    
                     
         
         
