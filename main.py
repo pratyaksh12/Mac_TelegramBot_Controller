@@ -145,7 +145,23 @@ def take_screenshot_cheat_and_send(chat_id, instructions)-> bool:
         if(os.path.exists(path)):    
             os.remove(path)
             
-    
+            
+def lock_screen_and_send(chat_id) -> bool:
+    try:
+        
+        applescript_command = 'tell application "System Events" to keystroke "q" using {control down, command down}'
+        subprocess.run(["osascript", "-e", applescript_command], check=True)
+        print("Screen locked successfully")
+        bot.send_message(chat_id, "screen locked successfully.")
+    except subprocess.SubprocessError as err:
+        print("Error locking the screen -> ", err)
+        return False
+    except Exception as ex:
+        print("error -> ", ex)
+        return False
+        
+    return True
+
         
     
        
@@ -206,6 +222,15 @@ def screenshot_cheat_handler(message):
             
     except Exception as err:
         print("an error occured while executing this command", err)
+        
+@bot.message_handler(commands=['lock', 'sleep'])
+def lock_screen_handler(message):
+    if message.chat.id != authorisation_id:
+        bot.reply_to(message, "You are not authorised by the admin")
+        
+    if not lock_screen_and_send(message.chat.id):
+        bot.reply_to(message, "unable to lock screen")
+        
             
                
     
