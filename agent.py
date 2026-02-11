@@ -28,7 +28,7 @@ def handle_image_response(path):
         
     try:
         response = client.chat.completions.create(
-            model="gpt-5-nano", # Updated to a valid model name
+            model="gpt-5-nano",
             messages=[
                 {
                     "role": "user",
